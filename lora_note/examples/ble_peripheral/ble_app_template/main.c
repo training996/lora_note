@@ -77,6 +77,7 @@
 #include "nrf_ble_gatt.h"
 #include "nrf_ble_qwr.h"
 #include "nrf_pwr_mgmt.h"
+#include "lora.h"
 
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -110,12 +111,15 @@
 #define SEC_PARAM_MAX_KEY_SIZE          16                                      /**< Maximum encryption key size. */
 
 #define DEAD_BEEF                       0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
+#define APP_TIMEOUT_LORATX_TICK         APP_TIMER_TICKS(1000)
 
-
+APP_TIMER_DEF(app_lora_timer_id);                                               /**< Lora TX timer. */
 NRF_BLE_GATT_DEF(m_gatt);                                                       /**< GATT module instance. */
 NRF_BLE_QWR_DEF(m_qwr);                                                         /**< Context for the Queued Write module.*/
 BLE_ADVERTISING_DEF(m_advertising);                                             /**< Advertising module instance. */
 
+static uint8_t  LORA_TXBUF[64];                                                 /**< Lora TX BUFFER. */
+static uint8_t  LORA_TXBUF_LEN;                                                 /**< Length of Lora TX BUFFER. */
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;                        /**< Handle of the current connection. */
 
 /* YOUR_JOB: Declare all services structure your application is using
@@ -167,6 +171,13 @@ static void pm_evt_handler(pm_evt_t const * p_evt)
         default:
             break;
     }
+}
+
+/**@brief Lora send event.
+ */
+static void app_lora_send_handler(void * p_context)
+{
+    Radio.Send( LORA_TXBUF, LORA_TXBUF_LEN );
 }
 
 
@@ -371,10 +382,11 @@ static void conn_params_init(void)
  */
 static void application_timers_start(void)
 {
-    /* YOUR_JOB: Start your timers. below is an example of how to start a timer.
-       ret_code_t err_code;
-       err_code = app_timer_start(m_app_timer_id, TIMER_INTERVAL, NULL);
-       APP_ERROR_CHECK(err_code); */
+    //Create lora send timer
+    ret_code_t err_code = app_timer_create(&app_lora_timer_id,
+                                 APP_TIMER_MODE_REPEATED,
+                                 app_lora_send_handler);
+    APP_ERROR_CHECK(err_code);
 
 }
 
@@ -705,11 +717,16 @@ static void advertising_start(bool erase_bonds)
 int main(void)
 {
     bool erase_bonds;
+    bool isMaster = true;//Master or Salve(true/false)
+    memset(LORA_TXBUF, 0 , 64);
+    *LORA_TXBUF = 2;
+    LORA_TXBUF_LEN = strlen((const char *)LORA_TXBUF);
 
     // Initialize.
     log_init();
     timers_init();
-    buttons_leds_init(&erase_bonds);
+//    buttons_leds_init(&erase_bonds);
+    Lora_init();
     power_management_init();
     ble_stack_init();
     gap_params_init();
@@ -725,10 +742,20 @@ int main(void)
 
     advertising_start(erase_bonds);
 
+    if(!isMaster)
+    {
+       Radio.Rx( RX_TIMEOUT_VALUE );
+    }
+
     // Enter main loop.
     for (;;)
     {
         idle_state_handle();
+        if(isMaster == true)
+        {
+           ret_code_t err_code = app_timer_start(app_lora_timer_id, APP_TIMEOUT_LORATX_TICK, NULL);
+           APP_ERROR_CHECK(err_code);
+        }
     }
 }
 
