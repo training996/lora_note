@@ -4105,6 +4105,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\user\src\sx1276-board.c</FilePath>
             </File>
+            <File>
+              <FileName>sx1278-temp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\user\src\sx1278-temp.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -8213,6 +8218,11 @@
               <FileName>sx1276-board.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\..\user\src\sx1276-board.c</FilePath>
+            </File>
+            <File>
+              <FileName>sx1278-temp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\..\user\src\sx1278-temp.c</FilePath>
             </File>
           </Files>
         </Group>

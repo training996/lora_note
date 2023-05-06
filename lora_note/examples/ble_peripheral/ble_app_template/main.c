@@ -78,6 +78,7 @@
 #include "nrf_ble_qwr.h"
 #include "nrf_pwr_mgmt.h"
 #include "lora.h"
+#include "sx1278-temp.h"
 
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
@@ -716,8 +717,11 @@ static void advertising_start(bool erase_bonds)
  */
 int main(void)
 {
-    bool erase_bonds;
-    bool isMaster = true;//Master or Salve(true/false)
+//    bool erase_bonds;
+    bool isMaster = false;//Master or Salve(true/false)
+    bool readtemp = true;//true or false
+    int8_t SXtemp = 0;
+    int32_t NRFtemp = 0;
     memset(LORA_TXBUF, 0 , 64);
     *LORA_TXBUF = 2;
     LORA_TXBUF_LEN = strlen((const char *)LORA_TXBUF);
@@ -740,12 +744,12 @@ int main(void)
     NRF_LOG_INFO("Template example started.");
     application_timers_start();
 
-    advertising_start(erase_bonds);
+//    advertising_start(erase_bonds);
 
-    if(!isMaster)
-    {
-       Radio.Rx( RX_TIMEOUT_VALUE );
-    }
+//    if(!isMaster)
+//    {
+//       Radio.Rx( RX_TIMEOUT_VALUE );
+//    }
 
     // Enter main loop.
     for (;;)
@@ -755,6 +759,17 @@ int main(void)
         {
            ret_code_t err_code = app_timer_start(app_lora_timer_id, APP_TIMEOUT_LORATX_TICK, NULL);
            APP_ERROR_CHECK(err_code);
+        }
+        if(readtemp == true)
+        {
+           SXtemp = RadioGetRawTenp();
+           NRF_LOG_INFO("sx1278temp:%d", SXtemp);
+
+           (void)sd_temp_get(&NRFtemp);
+           NRFtemp >>= 2;
+           NRF_LOG_INFO("nrf52832temp: %d", (int)(NRFtemp - 3));
+
+           nrf_delay_ms(5000);
         }
     }
 }
